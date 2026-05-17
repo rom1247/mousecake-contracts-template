@@ -4,7 +4,10 @@ paths:
   - src/modules/vault/**
   - src/core/vault/**
   - src/router/**
-  - src/modules/dex/**
+  - src/modules/dex/core/**
+  - src/modules/dex/periphery/**
+  - src/dex/core/**
+  - src/dex/periphery/**
   - src/dex/**
   - src/masterchef/**
   - src/modules/masterchef/**

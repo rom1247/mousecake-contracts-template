@@ -1,12 +1,19 @@
 # CLAUDE.md
 
-本文件是当前仓库的主规则入口（Hub）。目标是让 Claude Code 在 Solidity / Foundry 项目中保持安全优先、最小改动、可测试、可审计。
+本文件是当前仓库的 **Claude Code 主规则（Hub）**。本仓为 **Foundry + DeFi 规则模版**；复制为新项目后请修改 §0 项目名，并按 [`README.md`](./README.md) 裁剪目录与规则。
 
-专项细则见 `.claude/rules/`；带 `paths` 的规则仅在处理匹配路径的文件时注入上下文。
+专项细则见 `.claude/rules/`；带 `paths` 的规则仅在处理匹配路径的文件时注入。`paths` 策略与优化见 [`docs/PATHS-OPTIMIZATION.md`](./docs/PATHS-OPTIMIZATION.md)。
+
+## 0. 模版说明
+
+- 人类可读的使用说明、裁剪步骤：**[README.md](./README.md)**
+- 未创建之 `src/` 子目录不会触发对应产品规则
+- 无单独 `tier` 规则：`src/domain/tier/**` 适用 `products/launchpad.md`
+- 跨仓库、多项目部署由开发者自行处理，本 Hub 不描述
 
 ## 1. 项目上下文
 
-- 本项目是 `Foundry` 工程。
+- 本项目是 `Foundry` 工程（模版默认名：`mousecake-contracts`）。
 - 合约源码位于 `src/`
 - 测试位于 `test/`
 - 脚本位于 `script/`
@@ -17,7 +24,7 @@
 
 ### 源码目录约定
 
-推荐 **domain + modules** 布局；各 `products/*.md` 的 `paths` 同时兼容扁平目录（如 `src/masterchef/` 与 `src/modules/masterchef/`）。仅在使用对应路径时适用规则。
+推荐 **domain + modules**；各 `products/*.md` 的 `paths` **同时兼容**扁平目录（如 `src/masterchef/` 与 `src/modules/masterchef/`）。DEX 的 `router` / `factory` 规则已区分 `periphery` 与 `core`（详见 PATHS 文档）。
 
 **推荐结构：**
 
@@ -25,14 +32,16 @@
 src/
 ├── domain/
 │   ├── staking/          # 锁仓事实（SSOT）
-│   └── tier/             # 积分 / IDO 额度（无单独 tier 规则，见 launchpad.md）
+│   └── tier/             # 积分 / IDO 额度（见 launchpad.md）
 ├── modules/
-│   ├── staking/          # 质押用户入口
+│   ├── staking/
 │   ├── masterchef/
 │   ├── launchpad/
-│   └── dex/              # 可选：core/pool、periphery/router|quoter|zap|lens
-├── token/ | nft/ | governance/ | vault/ | bridge/ | proxy/   # 可按需放根级或 modules/ 下
-├── libraries/ | interfaces/ | types/ | errors/               # 横切（可选）
+│   └── dex/
+│       ├── core/pool/
+│       └── periphery/router|quoter|zap|lens
+├── token/ | nft/ | governance/ | vault/ | bridge/ | proxy/
+├── libraries/ | interfaces/ | types/ | errors/    # 可选
 ```
 
 **产品 ↔ 规则映射：**
@@ -46,8 +55,8 @@ src/
 | NFT | `modules/nft/` 或 `nft/` | `src/nft/**` | `products/nft.md` |
 | Governance | `governance/` 或 `modules/governance/` | `src/governance/**` | `products/governance.md` |
 | Vault | `modules/vault/` 或 `core/vault/` | `src/vault/**` | `products/vault.md` |
-| Router / DEX | `modules/dex/` | `src/router/**` | `products/router.md` |
-| Factory | `modules/dex/core/` 或 `factory/` | `src/factory/**` | `products/factory.md` |
+| Router / DEX | `modules/dex/periphery/` | `src/router/**` | `products/router.md` |
+| Factory / Pool | `modules/dex/core/` | `src/factory/**` | `products/factory.md` |
 | Bridge | `modules/bridge/` 或 `bridge/` | `src/bridge/**` | `products/bridge.md` |
 | Proxy | `proxy/` 或 `modules/proxy/` | `src/proxy/**` | `upgradeability.md` |
 
@@ -71,7 +80,8 @@ src/
 
 - 先阅读相关合约、测试、脚本和配置，再动手改代码
 - 先理解状态变量、权限模型、资金流向、外部调用路径
-- 识别产品形态（见 §1 目录表），查阅 §10 索引中对应的 `products/*.md` 或 `upgradeability.md`
+- 识别产品形态（见 §1），查阅 §11 索引；无对应 `src/` 路径时不适用该产品规则
+- 模块依赖：`modules/*` 通过 `interfaces` / registry 交互，禁止 import 其他模块实现
 - 如果需求存在歧义，先提出澄清问题，不做高风险猜测
 
 在实施修改时：
@@ -156,17 +166,23 @@ forge test
 Hub（本文件）→ solidity / security / defi（横切）→ products/*（产品形态）→ upgradeability（代理）
 ```
 
-## 10. 专项规则索引
+## 10. paths 与优化
+
+- 权威配置：各 rule 文件顶部 YAML `paths`
+- 模版默认：**宽泛兼容**（扁平 + modules + 少量 glob）
+- 上线前可切 **定型精简**：只保留实际目录，删除 glob（见 `docs/PATHS-OPTIMIZATION.md` 档位 B/C）
+
+## 11. 专项规则索引
 
 ### 基础规则
 
-| 文件 | `paths` | 用途 |
-|------|---------|------|
-| `solidity.md` | `src/**/*.sol` | Solidity 编码与可审计性 |
-| `security.md` | `src/**`, `script/**`, `test/**` 下 `.sol` | 通用安全与高风险场景 |
-| `defi.md` | `modules/dex/**`、`domain/**`、扁平 vault/router/staking 等 | 定价、预言机、滑点、记账横切 |
-| `upgradeability.md` | `proxy/**`、`modules/proxy/**`、`*Proxy*`、`*Upgrade*` | Proxy / 可升级与存储布局 |
-| `testing-foundry.md` | `test/**`, `script/**`, `foundry.toml` | 测试、Foundry、脚本与部署 |
+| 文件 | `paths`（摘要） | 用途 |
+|------|-----------------|------|
+| `solidity.md` | `src/**/*.sol` | 编码与可审计性 |
+| `security.md` | `src/**`, `script/**`, `test/**` 下 `.sol` | 通用安全 |
+| `defi.md` | `dex/core`, `dex/periphery`, vault, staking, launchpad, oracle… | 定价 / 滑点 / 记账横切 |
+| `upgradeability.md` | `proxy/**`, `*Proxy*`, `*Upgrade*` | 可升级与存储布局 |
+| `testing-foundry.md` | `test/**`, `script/**`, `foundry.toml` | 测试与脚本 |
 
 ### 产品形态规则（`products/`）
 
@@ -179,6 +195,6 @@ Hub（本文件）→ solidity / security / defi（横切）→ products/*（产
 | `nft.md` | `nft/**`, `modules/nft/**`, `dex/**/position/**` | NFT / 仓位 |
 | `governance.md` | `governance/**`, `modules/governance/**` | 治理与时间锁 |
 | `vault.md` | `vault/**`, `modules/vault/**`, `core/vault/**` | 金库与策略 |
-| `router.md` | `modules/dex/**`, `router/**`, `dex/**` | 路由与 DEX 外围 |
-| `factory.md` | `factory/**`, `modules/dex/core/**` | 工厂与池部署 |
+| `router.md` | `dex/periphery/**`, `router/**`（不含 pool core） | 路由与聚合 |
+| `factory.md` | `factory/**`, `modules/dex/core/**` | 工厂与池 |
 | `bridge.md` | `bridge/**`, `modules/bridge/**` | 跨链桥 |

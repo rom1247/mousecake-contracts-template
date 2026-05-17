@@ -5,6 +5,8 @@ paths:
   - src/**/*Token*.sol
 ---
 
+> 模版规则：仅当存在 matching `src/` 路径时适用；未使用可忽略或删除本文件。
+
 # Token
 
 ## 适用范围

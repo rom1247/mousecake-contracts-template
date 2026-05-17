@@ -1,8 +1,9 @@
 ---
 paths:
   - src/router/**
-  - src/modules/dex/**
+  - src/modules/dex/periphery/**
   - src/modules/router/**
+  - src/dex/periphery/**
   - src/dex/**
   - src/**/*Router*.sol
   - src/**/*Aggregator*.sol
